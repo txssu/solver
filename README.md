@@ -1,31 +1,31 @@
-# Equipment Replacement Planner
+# Планировщик замены оборудования
 
-This repository provides a simple simulation for planning the replacement of communication equipment on a cellular network. It generates random sites, estimates distances and calculates the required crews and costs for several scenarios.
+Репозиторий содержит простую имитационную модель для планирования массовой замены блоков связи. Программа генерирует случайные объекты, оценивает расстояния и вычисляет необходимое количество бригад и стоимость работ для нескольких сценариев.
 
-## Requirements
+## Требования
 
 - Python 3.10+
 - `numpy`
-- `streamlit` (for the dashboard)
+- `streamlit` (для панели управления)
 
-Install the dependencies:
+Установка зависимостей:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+## Использование
 
-Run the planning script for all four scenarios:
+Запуск расчёта всех четырёх сценариев:
 
 ```bash
 python run_planning.py
 ```
 
-Launch the interactive dashboard:
+Запуск интерактивной панели управления:
 
 ```bash
 streamlit run dashboard.py
 ```
 
-Parameters such as wages, object count, and road type can be adjusted through the dashboard or by editing `planner.Config` in the scripts.
+Параметры, такие как уровень зарплат, количество объектов и тип дорожной сети, можно менять через панель либо отредактировав класс `planner.Config` в скриптах.

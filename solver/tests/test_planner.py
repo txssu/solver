@@ -11,5 +11,5 @@ def test_required_crews():
 def test_cost_estimate_keys():
     cfg = planner.Config(num_objects=10)
     result = planner.cost_estimate(cfg, months=2, avg_distance_km=10)
-    for key in ["crews", "wages", "cars", "hotels", "allowance", "total"]:
+    for key in ["бригады", "зарплата", "автомобили", "гостиницы", "командировочные", "итого"]:
         assert key in result
