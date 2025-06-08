@@ -2,24 +2,28 @@
 """Запуск планировщика для нескольких сценариев."""
 from solver import planner
 
-SCENARIOS = [
-    {"name": "Слабая сеть дорог, 1 склад", "network_type": "star", "warehouses": 1},
-    {"name": "Слабая сеть дорог, 4 склада", "network_type": "star", "warehouses": 4},
-    {"name": "Развитая сеть дорог, 1 склад", "network_type": "spider", "warehouses": 1},
-    {"name": "Развитая сеть дорог, 4 склада", "network_type": "spider", "warehouses": 4},
-]
-
 MONTHS_OPTIONS = [2, 3, 4]
 
 
 def main():
-    for sc in SCENARIOS:
-        print("Сценарий:", sc["name"])
-        cfg = planner.Config(network_type=sc["network_type"], warehouses=sc["warehouses"])
-        for months in MONTHS_OPTIONS:
-            res = planner.solve_scenario(cfg, months)
-            print(f"  {months} мес. -> бригады: {res['бригады']}, общая стоимость: {res['итого']:.2f}")
+    results = planner.run_variants(MONTHS_OPTIONS)
+    scenario_names = {
+        ('star', 1): 'Слабая сеть дорог, 1 склад',
+        ('star', 4): 'Слабая сеть дорог, 4 склада',
+        ('spider', 1): 'Развитая сеть дорог, 1 склад',
+        ('spider', 4): 'Развитая сеть дорог, 4 склада',
+    }
+
+    for (net, wh), group in planner._group_by(results, ('network_type', 'warehouses')).items():
+        print("Сценарий:", scenario_names[(net, wh)])
+        for row in sorted(group, key=lambda r: r['months']):
+            print(f"  {row['months']} мес. -> бригады: {row['бригады']}, общая стоимость: {row['итого']:.2f}")
         print()
+
+    report_text = planner.generate_report(results)
+    with open("report.md", "w", encoding="utf-8") as f:
+        f.write(report_text)
+    print("Отчёт сохранён в report.md")
 
 
 if __name__ == "__main__":

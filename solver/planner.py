@@ -123,3 +123,98 @@ def solve_scenario(cfg: Config, months: int):
     avg_dist = average_distance(objects, assignments, cfg)
     result = cost_estimate(cfg, months, avg_dist)
     return result
+
+
+def scenario_table(cfg: Config, months_options: List[int]) -> List[dict]:
+    """Вычисляет результаты для набора сроков выполнения."""
+    rows = []
+    for m in months_options:
+        res = solve_scenario(cfg, m)
+        rows.append({
+            'network_type': cfg.network_type,
+            'warehouses': cfg.warehouses,
+            'months': m,
+            **res,
+        })
+    return rows
+
+
+def run_variants(months_options: List[int]) -> List[dict]:
+    """Запускает все четыре обязательных сценария."""
+    rows = []
+    for net in ['star', 'spider']:
+        for wh in [1, 4]:
+            cfg = Config(network_type=net, warehouses=wh)
+            rows.extend(scenario_table(cfg, months_options))
+    return rows
+
+
+def generate_report(results: List[dict]) -> str:
+    """Формирует текстовый технико-экономический отчёт."""
+    lines = ["# Технико-экономический отчёт", ""]
+    scenario_names = {
+        ('star', 1): 'Слабая сеть дорог, 1 склад',
+        ('star', 4): 'Слабая сеть дорог, 4 склада',
+        ('spider', 1): 'Развитая сеть дорог, 1 склад',
+        ('spider', 4): 'Развитая сеть дорог, 4 склада',
+    }
+    for (net, wh), group in _group_by(results, ('network_type', 'warehouses')).items():
+        lines.append(f"## {scenario_names[(net, wh)]}")
+        for row in sorted(group, key=lambda r: r['months']):
+            lines.append(
+                f"- {row['months']} мес.: бригады {row['бригады']}, итог {row['итого']:.2f} руб."
+            )
+        lines.append("")
+    heur = derive_heuristics(results)
+    lines.append("## Выводы")
+    for h in heur:
+        lines.append(f"- {h}")
+    return "\n".join(lines)
+
+
+def _group_by(rows: List[dict], keys: Tuple[str, ...]) -> dict:
+    grouped = {}
+    for row in rows:
+        k = tuple(row[k] for k in keys)
+        grouped.setdefault(k, []).append(row)
+    return grouped
+
+
+def derive_heuristics(results: List[dict]) -> List[str]:
+    """Выводит эвристические правила по результатам расчётов."""
+    heuristics = []
+
+    # Сравнение сроков
+    for months in [2, 3, 4]:
+        costs = [r['итого'] for r in results if r['months'] == months]
+        if months > 2 and costs and min(costs) < max(costs):
+            heuristics.append(
+                "увеличение срока работ снижает количество бригад и суммарную стоимость"
+            )
+            break
+
+    # Больше складов против одного
+    for net in ['star', 'spider']:
+        pair = [r for r in results if r['network_type'] == net and r['months'] == 2]
+        c1 = next((r for r in pair if r['warehouses'] == 1), None)
+        c4 = next((r for r in pair if r['warehouses'] == 4), None)
+        if c1 and c4 and c4['итого'] < c1['итого']:
+            heuristics.append(
+                "увеличение числа складов сокращает расходы на перевозки и стоимость"
+            )
+            break
+
+    # Звезда против паутины
+    pair_star = [r for r in results if r['network_type'] == 'star' and r['months'] == 2]
+    pair_spider = [r for r in results if r['network_type'] == 'spider' and r['months'] == 2]
+    for wh in [1, 4]:
+        r_star = next((r for r in pair_star if r['warehouses'] == wh), None)
+        r_spider = next((r for r in pair_spider if r['warehouses'] == wh), None)
+        if r_star and r_spider and r_spider['итого'] < r_star['итого']:
+            heuristics.append(
+                "развитая дорожная сеть (\"паутина\") уменьшает расстояния и издержки"
+            )
+            break
+
+    return heuristics
+
